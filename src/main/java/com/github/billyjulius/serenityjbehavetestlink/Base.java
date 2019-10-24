@@ -27,19 +27,26 @@ public class Base extends SerenityStory {
     String TESTLINK_URL;
     String TESTLINK_KEY;
 
-    String _PROJECTNAME = "Project Coba Integrasi";
+    String _PROJECTNAME;
     Integer _SUITEID;
-    Integer _PROJECTID = 1169;
-    Integer _VERSION = 1;
-    String _BUILDNAME = "Automated";
-    String _PLANNAME = "Plan 201909";
-    String _USERNAME = "billy";
+    Integer _PROJECTID;
+    Integer _VERSION;
+    String _BUILDNAME;
+    String _PLANNAME;
+    String _USERNAME;
     String _TCSUMMARY = null;
 
     public Base() {
         EnvironmentVariables variables = SystemEnvironmentVariables.createEnvironmentVariables();
         this.TESTLINK_URL = variables.getProperty("testlink.url");
         this.TESTLINK_KEY = variables.getProperty("testlink.key");
+        this._PROJECTID = Integer.parseInt(variables.getProperty("testlink.project.id"));
+        this._PROJECTNAME = variables.getProperty("testlink.project.name");
+        this._VERSION = variables.getPropertyAsInteger("testlink.project.version", 1);
+        this._SUITEID = Integer.parseInt(variables.getProperty("testlink.project.suite.id"));
+        this._BUILDNAME = variables.getProperty("testlink.build.name");
+        this._PLANNAME = variables.getProperty("testlink.plan.name");
+        this._USERNAME = variables.getProperty("testlink.username");
     }
 
     @AfterScenario(uponType = ScenarioType.NORMAL)
