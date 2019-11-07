@@ -111,10 +111,7 @@ public class Base extends SerenityStory {
             // GivenStories
             if(testStep.getChildren().size() > 0 && !exampleStories && stepResults.size() == count_given) {
                 stepResults.clear();
-                StepResult stepResult = new StepResult();
-                stepResult.name = testStep.getDescription();
-                stepResult.status = testStep.isFailure() || testStep.isError() ? "Failed" : "Success";
-                stepResults.add(stepResult);
+                addStepResult(testStep);
                 count_given++;
             }
 
@@ -141,17 +138,13 @@ public class Base extends SerenityStory {
                 if(stepResults.size() == count_given) {
                     List<TestStep> childrenSteps = testStep.getChildren();
                     for (TestStep testStep1 : childrenSteps) {
-                        // String temp_name = testStep1.getDescription();
-                        // Pattern pattern = Pattern.compile("\\{(\\w+)\\}");
-                        // Matcher matcher = pattern.matcher(testStep1.getDescription());
-                        // if(matcher.find()) {
-                        //     temp_name = matcher.replaceAll("{field}");
-                        // }
-
-                        StepResult stepResult = new StepResult();
-                        stepResult.name = testStep1.getDescription();
-                        stepResult.status = testStep1.isFailure() || testStep.isError() ? "Failed" : "Success";
-                        stepResults.add(stepResult);
+                        String temp_name = testStep1.getDescription();
+                        Pattern pattern = Pattern.compile("\\{(\\w+)\\}");
+                        Matcher matcher = pattern.matcher(testStep1.getDescription());
+                        if(matcher.find()) {
+                            temp_name = matcher.replaceAll("{"+this.exampleValues.get(0)+"}");
+                        }
+                        addStepResult(testStep1, temp_name);
                     }
                 }
             }
@@ -169,26 +162,23 @@ public class Base extends SerenityStory {
 
             if(testStep.getChildren().size() > 0 && !storyStep) {
                 stepResults.clear();
-                StepResult stepResult = new StepResult();
-                stepResult.name = testStep.getDescription();
-                stepResult.status = testStep.isFailure() || testStep.isError() ? "Failed" : "Success";
-                stepResults.add(stepResult);
+                addStepResult(testStep);
             }
 
             if(testStep.getChildren().size() == 0) {
-                StepResult stepResult = new StepResult();
-                stepResult.name = testStep.getDescription();
-                stepResult.status = testStep.isFailure() || testStep.isError() ? "Failed" : "Success";
-                stepResults.add(stepResult);
+                addStepResult(testStep);
             }
 
             if(testStep.getChildren().size() > 0 && storyStep) {
+                // If using rest-assured ignore childern
+                addStepResult(testStep);
+
                 List<TestStep> childrenSteps = testStep.getChildren();
                 for (TestStep testStep1 : childrenSteps) {
-                    StepResult stepResult = new StepResult();
-                    stepResult.name = testStep1.getDescription();
-                    stepResult.status = testStep1.isFailure() || testStep.isError() ? "Failed" : "Success";
-                    stepResults.add(stepResult);
+                    Boolean childStoryStep = pattern.matcher(testStep1.getDescription()).find();
+                    if(childStoryStep) {
+                        addStepResult(testStep1);
+                    }
                 }
             }
         }
@@ -203,6 +193,20 @@ public class Base extends SerenityStory {
         }
 
         return null;
+    }
+
+    private void addStepResult(TestStep testStep) {
+        StepResult stepResult = new StepResult();
+        stepResult.name = testStep.getDescription();
+        stepResult.status = testStep.isFailure() || testStep.isError() ? "Failed" : "Success";
+        stepResults.add(stepResult);
+    }
+
+    private void addStepResult(TestStep testStep, String description) {
+        StepResult stepResult = new StepResult();
+        stepResult.name = description;
+        stepResult.status = testStep.isFailure() || testStep.isError() ? "Failed" : "Success";
+        stepResults.add(stepResult);
     }
 }
 
