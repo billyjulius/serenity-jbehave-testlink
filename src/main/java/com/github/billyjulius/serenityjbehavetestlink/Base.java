@@ -19,7 +19,7 @@ import com.github.billyjulius.testlinkhelper.TestLinkMain;
 public class Base extends SerenityStory {
 
     protected TestOutcome testOutcome;
-    protected String errorMessage = null;
+    protected String errorMessage = "";
     protected Boolean isSuccess = true;
     protected List<String> exampleValues = new ArrayList<String>();
     protected List<StepResult> stepResults =  new ArrayList<StepResult>();
@@ -34,7 +34,7 @@ public class Base extends SerenityStory {
     String _BUILDNAME;
     String _PLANNAME;
     String _USERNAME;
-    String _TCSUMMARY = null;
+    String _TCSUMMARY = "";
 
     public Base() {
         EnvironmentVariables variables = SystemEnvironmentVariables.createEnvironmentVariables();
@@ -87,68 +87,44 @@ public class Base extends SerenityStory {
         }
     }
 
-    private TestOutcome GetTestOutcome() {
-        List<TestOutcome> testOutcomeList= StepEventBus.getEventBus().getBaseStepListener().getTestOutcomes();
-
-        TestOutcome testOutcome = testOutcomeList.get(testOutcomeList.size()-1);
-
-        return testOutcome;
-    }
-
-    private void GetTestErrorMessage() {
-        if(testOutcome.isFailure() || testOutcome.isError()) {
-            errorMessage = testOutcome.getErrorMessage();
-            isSuccess = false;
-        }
-    }
-
     private void GetTestResultWithExample() {
-        Integer count_given = 0;
+        // Should contain string if scenario examples
+        String outline = this.testOutcome.getDataDrivenSampleScenario();
+
         List<TestStep> testStepList = this.testOutcome.getTestSteps();
-        for(TestStep testStep : testStepList) {
-            Boolean exampleStories = testStep.getDescription().toString().matches("(.*)Example #\\d+(.*)");
 
-            // GivenStories
-            if(testStep.getChildren().size() > 0 && !exampleStories && stepResults.size() == count_given) {
-                stepResults.clear();
-                addStepResult(testStep);
-                count_given++;
-            }
+        stepResults.clear();
+        String[] outline_arr = outline.split("\n");
 
-            if(testStep.getChildren().size() > 0 && exampleStories) {
-                // Jbehave scenario with examples
-                DataTable dataTable = this.testOutcome.getDataTable();
-                List<String> exampleFields = dataTable.getHeaders();
-                List<DataTableRow> exampleValuesRow = dataTable.getRows();
+        TestStep lastStep = testStepList.get(testStepList.size()-1);
+        List<TestStep> childrenSteps = lastStep.getChildren();
 
-                if (this.exampleValues.size() == 0) {
-                    for (DataTableRow dataTableRow : exampleValuesRow) {
-                        List<String> values_temp = dataTableRow.getStringValues();
-                        for (String value : values_temp) {
-                            this.exampleValues.add(value.toString());
-                        }
-                    }
-                }
+        for(Integer i=0; i<outline_arr.length; i++) {
+            StepResult stepResult = new StepResult();
+            stepResult.name = outline_arr[i];
+            stepResult.status = childrenSteps.get(i).isSuccessful() ? "Success" : "Failed";
+            stepResults.add(stepResult);
+        }
 
-                if(_TCSUMMARY == null) {
-                    _TCSUMMARY += "fields = " + String.join(",", exampleFields) + "\n";
-                    _TCSUMMARY += "values = " + String.join(",", this.exampleValues) + "\n";
-                }
+        DataTable dataTable = this.testOutcome.getDataTable();
+        List<String> exampleFields = dataTable.getHeaders();
+        List<DataTableRow> exampleValuesRow = dataTable.getRows();
 
-                if(stepResults.size() == count_given) {
-                    List<TestStep> childrenSteps = testStep.getChildren();
-                    for (TestStep testStep1 : childrenSteps) {
-                        String temp_name = testStep1.getDescription();
-                        Pattern pattern = Pattern.compile("\\{(\\w+)\\}");
-                        Matcher matcher = pattern.matcher(testStep1.getDescription());
-                        if(matcher.find()) {
-                            temp_name = matcher.replaceAll("{"+this.exampleValues.get(0)+"}");
-                        }
-                        addStepResult(testStep1, temp_name);
-                    }
+        if (this.exampleValues.size() == 0) {
+            for (DataTableRow dataTableRow : exampleValuesRow) {
+                List<String> values_temp = dataTableRow.getStringValues();
+                for (String value : values_temp) {
+                    this.exampleValues.add(value.toString());
                 }
             }
         }
+
+        if(_TCSUMMARY == "") {
+            _TCSUMMARY += "fields = " + String.join(",", exampleFields) + "\n";
+            _TCSUMMARY += "values = " + String.join(",", this.exampleValues) + "\n";
+        }
+
+        this.errorMessage = lastStep.getDescription() + System.lineSeparator() + System.lineSeparator();
     }
 
     private void GetTestResult() {
@@ -195,17 +171,32 @@ public class Base extends SerenityStory {
         return null;
     }
 
+    private TestOutcome GetTestOutcome() {
+        List<TestOutcome> testOutcomeList= StepEventBus.getEventBus().getBaseStepListener().getTestOutcomes();
+
+        TestOutcome testOutcome = testOutcomeList.get(testOutcomeList.size()-1);
+
+        return testOutcome;
+    }
+
+    private void GetTestErrorMessage() {
+        if(testOutcome.isFailure() || testOutcome.isError()) {
+            errorMessage += testOutcome.getErrorMessage();
+            isSuccess = false;
+        }
+    }
+
     private void addStepResult(TestStep testStep) {
         StepResult stepResult = new StepResult();
         stepResult.name = testStep.getDescription();
-        stepResult.status = testStep.isFailure() || testStep.isError() ? "Failed" : "Success";
+        stepResult.status = testStep.isSuccessful() ? "Success" : "Failed";
         stepResults.add(stepResult);
     }
 
     private void addStepResult(TestStep testStep, String description) {
         StepResult stepResult = new StepResult();
         stepResult.name = description;
-        stepResult.status = testStep.isFailure() || testStep.isError() ? "Failed" : "Success";
+        stepResult.status = testStep.isSuccessful() ? "Success" : "Failed";
         stepResults.add(stepResult);
     }
 }
